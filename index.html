@@ -144,6 +144,16 @@ curl https://dv-g3b-aaa-emudhra.we-have-a-problem.com/</pre>
 
 <p>Add more at <a href="https://github.com/galadran/we-have-a-problem.com">github.com/galadran/we-have-a-problem.com</a>.</p>
 
+<h3 id="containers"><a href="#containers">What about container images?</a></h3>
+
+<p>A container image keeps the trust store it was built with, so a patched package in the table above is not in an image until the image is rebuilt with it. On 21 October, the latest <code>python:3.10-slim</code> to <code>python:3.14-slim</code> and <code>ruby:slim</code> images on Docker Hub still had Debian <code>ca-certificates</code> 20250419 and trusted the compromised intermediates.</p>
+
+<p>In the one image where we tested a fix, <code>python:3.13-slim</code> (Debian 13), this build step installed 20250419+deb13u1, and Python then rejected all twelve hosts above:</p>
+<pre>RUN apt-get update &amp;&amp; apt-get install -y --only-upgrade ca-certificates</pre>
+<p>It only upgrades a <code>ca-certificates</code> package that is already installed, and only to a version the image's configured repositories provide. Make sure the step actually runs when you rebuild instead of reusing a cached layer. We did not test Ubuntu based images or other clients, and the Java and Node.js images we tested use their own trust stores rather than this package.</p>
+
+<p>The official <code>node</code> images we tested use the trust store bundled with Node.js, so they need a fixed Node.js release. On 21 October the table above lists Node.js as pending.</p>
+
 <h3 id="macos-curl"><a href="#macos-curl">Are there workarounds for macOS curl?</a></h3>
 
 <p>macOS blocks the compromised intermediates, but the built-in <code>/usr/bin/curl</code> verifies certificates against <code>/etc/ssl/cert.pem</code> without checking revocation, and that file has not been updated. To remove the affected roots from it, run:</p>
